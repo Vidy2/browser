@@ -39,32 +39,33 @@
 
   <script>
     let tabs = [{ url: "https://wikipedia.org" }];
-    let activeTabIndex = 0;
+    let activeTabIndex = 0; 
 
-    // Set initial URL for Tab 1
-    document.getElementById('iframe-0').src = "https://wikipedia.org";
+    // Set initial URL for Tab 1 
+    document.getElementById('iframe-0').src = "https://wikipedia.org"; 
 
-    // Handle the "Go" button click
-    document.getElementById('go-btn').onclick = navigateToUrl;
+    // Handle the "Go" button click 
+    document.getElementById('go-btn').onclick = navigateToUrl; 
 
-    // Allow pressing "Enter" in the input field to trigger the Go button
+    // Allow pressing "Enter" in the input field 
     document.getElementById('url-input').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') navigateToUrl();
-    });
-    // Intercept clicks and form submissions inside the iframe to open in a new tab instead
+        if (e.key === 'Enter') navigateToUrl();
+    }); 
+
+    // Intercept clicks and form submissions inside the iframe to open in the SAME iframe instead
     function setupIframe(iframeElement) {
         iframeElement.onload = function() {
             try {
                 let iframeDoc = iframeElement.contentWindow.document;
                 
-                // Force all links to open in a new tab
+                // Force all links to open in the SAME iframe instead of _blank
                 iframeDoc.querySelectorAll('a').forEach(a => {
-                    a.setAttribute('target', '_blank');
+                    a.setAttribute('target', '_self');
                 });
-
+                
                 // Prevent forms from breaking the iframe layout
                 iframeDoc.querySelectorAll('form').forEach(form => {
-                    form.setAttribute('target', '_blank');
+                    form.setAttribute('target', '_self');
                 });
             } catch (e) {
                 // Cross-origin domains (like Google/Wikipedia) will block this due to CORS security.
@@ -73,106 +74,106 @@
         };
     }
 
-
     function navigateToUrl() {
-      let query = document.getElementById('url-input').value.trim();
-      if (!query) return;
-      let targetUrl = query;
-      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-          if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
-              targetUrl = 'https://' + targetUrl;
-          } else {
-              targetUrl = 'https://google.com' + encodeURIComponent(targetUrl);
-          }
-      }
-      
-      tabs[activeTabIndex].url = targetUrl;
-      let activeIframe = document.getElementById(`iframe-${activeTabIndex}`);
-      activeIframe.srcdoc = ""; 
-      activeIframe.removeAttribute('srcdoc');
-      activeIframe.src = targetUrl;
+        let query = document.getElementById('url-input').value.trim();
+        if (!query) return;
 
-      // Apply the interceptor
-      setupIframe(activeIframe);
-  }
+        let targetUrl = query;
+        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+            if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+                targetUrl = 'https://' + targetUrl;
+            } else {
+                // Fixed google search query parameter
+                targetUrl = 'https://google.com' + encodeURIComponent(targetUrl);
+            }
+        }
 
+        tabs[activeTabIndex].url = targetUrl;
+        let activeIframe = document.getElementById(`iframe-${activeTabIndex}`);
+        
+        // Clear and reload the iframe safely
+        activeIframe.srcdoc = "";
+        activeIframe.removeAttribute('srcdoc');
+        activeIframe.src = targetUrl;
+        
+        // Apply the interceptor
+        setupIframe(activeIframe);
+    }
 
     function addNewTab() {
-      let newIndex = tabs.length;
-      tabs.push({ url: "https://www.google.com" });
-      
-      let newTabBtn = document.createElement('button');
-      newTabBtn.className = 'tab';
-      newTabBtn.id = `tab-btn-${newIndex}`;
-      newTabBtn.onclick = () => switchTab(newIndex);
-      newTabBtn.innerHTML = `Tb ${newIndex + 1} <button class="close-btn" onclick="closeTab(${newIndex}, event)">×</button>`;
-      
-      let tabBar = document.getElementById('tab-bar');
-      tabBar.insertBefore(newTabBtn, tabBar.lastElementChild);
-      
-      let newIframe = document.createElement('iframe');
-      newIframe.id = `iframe-${newIndex}`;
-      newIframe.src = "https://www.google.com";
-      document.getElementById('browser-container').appendChild(newIframe);
-      
-      // Apply the interceptor to the new iframe
-      setupIframe(newIframe);
-
-      switchTab(newIndex);
-  }
-
+        let newIndex = tabs.length;
+        tabs.push({ url: "https://www.google.com" });
+        
+        let newTabBtn = document.createElement('button');
+        newTabBtn.className = 'tab';
+        newTabBtn.id = `tab-btn-${newIndex}`;
+        newTabBtn.onclick = () => switchTab(newIndex);
+        newTabBtn.innerHTML = `Tb ${newIndex + 1} <button class="close-btn" onclick="closeTab(${newIndex}, event)">×</button>`;
+        
+        let tabBar = document.getElementById('tab-bar');
+        tabBar.insertBefore(newTabBtn, tabBar.lastElementChild);
+        
+        let newIframe = document.createElement('iframe');
+        newIframe.id = `iframe-${newIndex}`;
+        newIframe.src = "https://www.google.com";
+        document.getElementById('browser-container').appendChild(newIframe);
+        
+        // Apply the interceptor to the new iframe
+        setupIframe(newIframe);
+        switchTab(newIndex);
+    }
 
     function switchTab(index) {
-      // Deactivate old tab & iframe
-      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('iframe').forEach(el => el.classList.remove('active'));
-
-      // Activate clicked tab & corresponding iframe
-      activeTabIndex = index;
-      
-      // Find the tab button by index (skipping the "+ New Tab" button in query selection)
-      let tabButtons = document.querySelectorAll('#tab-bar .tab');
-      if (tabButtons[index]) tabButtons[index].classList.add('active');
-
-      let targetIframe = document.getElementById(`iframe-${index}`);
-      targetIframe.classList.add('active');
-
-      // Update the URL input to match the active tab's URL
-      document.getElementById('url-input').value = tabs[index].url;
+        // Deactivate old tab & iframe
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('iframe').forEach(el => el.classList.remove('active'));
+        
+        // Activate clicked tab & corresponding iframe
+        activeTabIndex = index;
+        
+        let tabButtons = document.querySelectorAll('#tab-bar .tab');
+        if (tabButtons[index]) tabButtons[index].classList.add('active');
+        
+        let targetIframe = document.getElementById(`iframe-${index}`);
+        targetIframe.classList.add('active');
+        
+        // Update the URL input to match the active tab's URL
+        document.getElementById('url-input').value = tabs[index].url;
     }
 
     function closeTab(index, event) {
-      event.stopPropagation(); // Prevents switching to the closed tab
-
-      // Don't close if it's the last remaining tab
-      if (tabs.length === 1) return; 
-
-      // Remove the tab and iframe from DOM
-      let tabButtons = document.querySelectorAll('#tab-bar .tab');
-      tabButtons[index].remove();
-      document.getElementById(`iframe-${index}`).remove();
-
-      // Remove from array and adjust indices
-      tabs.splice(index, 1);
-
-      // Refresh tab labels
-      let existingTabs = document.querySelectorAll('#tab-bar .tab');
-      for(let i = 0; i < existingTabs.length - 1; i++) {
-        existingTabs[i].onclick = () => switchTab(i);
-        existingTabs[i].innerHTML = `Tab ${i + 1} <button class="close-btn" onclick="closeTab(${i}, event)">×</button>`;
-        existingTabs[i].id = `tab-btn-${i}`;
-      }
-
-      // Rename all iframes to maintain mapping integrity
-      let remainingIframes = document.querySelectorAll('#browser-container iframe');
-      for(let i = 0; i < remainingIframes.length; i++) {
-        remainingIframes[i].id = `iframe-${i}`;
-      }
-
-      // Switch to the previous tab or the first tab
-      let newActiveIndex = index > 0 ? index - 1 : 0;
-      switchTab(newActiveIndex);
+        event.stopPropagation();
+        
+        // Don't close if it's the last remaining tab
+        if (tabs.length === 1) return;
+        
+        // Remove the tab and iframe from DOM
+        let tabButtons = document.querySelectorAll('#tab-bar .tab');
+        tabButtons[index].remove();
+        document.getElementById(`iframe-${index}`).remove();
+        
+        // Remove from array and adjust indices
+        tabs.splice(index, 1);
+        
+        // Refresh tab labels
+        let existingTabs = document.querySelectorAll('#tab-bar .tab');
+        for(let i = 0; i < existingTabs.length - 1; i++) {
+            existingTabs[i].onclick = () => switchTab(i);
+            existingTabs[i].innerHTML = `Tb ${i + 1} <button class="close-btn" onclick="closeTab(${i}, event)">×</button>`;
+            existingTabs[i].id = `tab-btn-${i}`;
+        }
+        
+        // Rename all iframes to maintain mapping integrity
+        let remainingIframes = document.querySelectorAll('#browser-container iframe');
+        for(let i = 0; i < remainingIframes.length; i++) {
+            remainingIframes[i].id = `iframe-${i}`;
+        }
+        
+        // Switch to the previous tab or the first tab
+        let newActiveIndex = index > 0 ? index - 1 : 0;
+        switchTab(newActiveIndex);
     }
-  </script>
+    </script>
+
 </body>
 </html>
