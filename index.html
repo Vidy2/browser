@@ -51,54 +51,76 @@
     document.getElementById('url-input').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') navigateToUrl();
     });
+    // Intercept clicks and form submissions inside the iframe to open in a new tab instead
+    function setupIframe(iframeElement) {
+        iframeElement.onload = function() {
+            try {
+                let iframeDoc = iframeElement.contentWindow.document;
+                
+                // Force all links to open in a new tab
+                iframeDoc.querySelectorAll('a').forEach(a => {
+                    a.setAttribute('target', '_blank');
+                });
+
+                // Prevent forms from breaking the iframe layout
+                iframeDoc.querySelectorAll('form').forEach(form => {
+                    form.setAttribute('target', '_blank');
+                });
+            } catch (e) {
+                // Cross-origin domains (like Google/Wikipedia) will block this due to CORS security.
+                // This is standard browser security behavior.
+            }
+        };
+    }
+
 
     function navigateToUrl() {
       let query = document.getElementById('url-input').value.trim();
       if (!query) return;
-
       let targetUrl = query;
       if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-        if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
-          targetUrl = 'https://' + targetUrl;
-        } else {
-          targetUrl = 'https://google.com' + encodeURIComponent(targetUrl);
-        }
+          if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+              targetUrl = 'https://' + targetUrl;
+          } else {
+              targetUrl = 'https://google.com' + encodeURIComponent(targetUrl);
+          }
       }
-
-      // Update current tab's data
+      
       tabs[activeTabIndex].url = targetUrl;
-
-      // Update the active iframe
       let activeIframe = document.getElementById(`iframe-${activeTabIndex}`);
       activeIframe.srcdoc = ""; 
-      activeIframe.removeAttribute('srcdoc'); 
+      activeIframe.removeAttribute('srcdoc');
       activeIframe.src = targetUrl;
-    }
+
+      // Apply the interceptor
+      setupIframe(activeIframe);
+  }
+
 
     function addNewTab() {
       let newIndex = tabs.length;
       tabs.push({ url: "https://www.google.com" });
-
-      // Create new tab button
+      
       let newTabBtn = document.createElement('button');
       newTabBtn.className = 'tab';
       newTabBtn.id = `tab-btn-${newIndex}`;
       newTabBtn.onclick = () => switchTab(newIndex);
       newTabBtn.innerHTML = `Tb ${newIndex + 1} <button class="close-btn" onclick="closeTab(${newIndex}, event)">×</button>`;
-
-      // Insert the new tab before the "+ New Tab" button
+      
       let tabBar = document.getElementById('tab-bar');
       tabBar.insertBefore(newTabBtn, tabBar.lastElementChild);
-
-      // Create new iframe
+      
       let newIframe = document.createElement('iframe');
       newIframe.id = `iframe-${newIndex}`;
       newIframe.src = "https://www.google.com";
       document.getElementById('browser-container').appendChild(newIframe);
+      
+      // Apply the interceptor to the new iframe
+      setupIframe(newIframe);
 
-      // Switch to the newly created tab
       switchTab(newIndex);
-    }
+  }
+
 
     function switchTab(index) {
       // Deactivate old tab & iframe
