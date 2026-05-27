@@ -5,24 +5,152 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Unblocked Web Browser</title>
   <style>
-    body { width: 400px; height: 450px; font-family: sans-serif; margin: 10px; }
-    #nav { display: flex; gap: 5px; margin-bottom: 10px; }
-    input { flex: 1; padding: 5px; }
-    iframe { width: 100%; height: 380px; border: 1px solid #ccc; }
+    body { width: 100vw; height: 100vh; font-family: sans-serif; margin: 0; padding: 10px; box-sizing: border-box; background: #f5f5f5; display: flex; flex-direction: column; }
+    #tab-bar { display: flex; gap: 5px; background: #ddd; padding: 5px 5px 0 5px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+    .tab { padding: 8px 16px; background: #ccc; border: none; border-top-left-radius: 4px; border-top-right-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+    .tab.active { background: white; font-weight: bold; border-bottom: 1px solid white; }
+    .tab .close-btn { font-size: 16px; color: #888; border: none; background: none; padding: 0; cursor: pointer; }
+    .tab .close-btn:hover { color: red; }
+    #nav { display: flex; gap: 5px; background: white; padding: 10px; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; border: 1px solid #ccc; border-top: none; }
+    input { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    button.go-btn { padding: 8px 16px; background: #007acc; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    button.go-btn:hover { background: #005999; }
+    #browser-container { flex: 1; position: relative; }
+    iframe { width: 100%; height: 100%; border: 1px solid #ccc; border-top: none; background: white; display: none; }
+    iframe.active { display: block; }
   </style>
 </head>
 <body>
-  <div id="nav">
-    <input type="text" id="url" value="https://bing.com">
-    <button id="go">Go</button>
+
+  <div id="tab-bar">
+    <button class="tab active" onclick="switchTab(0)">Tb1 <button class="close-btn" onclick="closeTab(0, event)">×</button></button>
+    <button class="tab" onclick="addNewTab()">+ Ntb</button>
   </div>
-  <iframe id="view" src="https://bing.com"></iframe>
+  
+  <div id="nav">
+    <input type="text" id="url-input" value="wikipedia.org" placeholder="Enter URL or search term...">
+    <button class="go-btn" id="go-btn">Go</button>
+  </div>
+  
+  <div id="browser-container">
+    <!-- Tab 1 iframe -->
+    <iframe class="active" id="iframe-0"></iframe>
+  </div>
+
   <script>
-    document.getElementById('go').onclick = function() {
-      let url = document.getElementById('url').value;
-      if (!url.startsWith('http')) url = 'https://' + url;
-      document.getElementById('view').src = url;
-    };
+    let tabs = [{ url: "https://wikipedia.org" }];
+    let activeTabIndex = 0;
+
+    // Set initial URL for Tab 1
+    document.getElementById('iframe-0').src = "https://wikipedia.org";
+
+    // Handle the "Go" button click
+    document.getElementById('go-btn').onclick = navigateToUrl;
+
+    // Allow pressing "Enter" in the input field to trigger the Go button
+    document.getElementById('url-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') navigateToUrl();
+    });
+
+    function navigateToUrl() {
+      let query = document.getElementById('url-input').value.trim();
+      if (!query) return;
+
+      let targetUrl = query;
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+          targetUrl = 'https://' + targetUrl;
+        } else {
+          targetUrl = 'https://google.com' + encodeURIComponent(targetUrl);
+        }
+      }
+
+      // Update current tab's data
+      tabs[activeTabIndex].url = targetUrl;
+
+      // Update the active iframe
+      let activeIframe = document.getElementById(`iframe-${activeTabIndex}`);
+      activeIframe.srcdoc = ""; 
+      activeIframe.removeAttribute('srcdoc'); 
+      activeIframe.src = targetUrl;
+    }
+
+    function addNewTab() {
+      let newIndex = tabs.length;
+      tabs.push({ url: "https://www.google.com" });
+
+      // Create new tab button
+      let newTabBtn = document.createElement('button');
+      newTabBtn.className = 'tab';
+      newTabBtn.id = `tab-btn-${newIndex}`;
+      newTabBtn.onclick = () => switchTab(newIndex);
+      newTabBtn.innerHTML = `Tb ${newIndex + 1} <button class="close-btn" onclick="closeTab(${newIndex}, event)">×</button>`;
+
+      // Insert the new tab before the "+ New Tab" button
+      let tabBar = document.getElementById('tab-bar');
+      tabBar.insertBefore(newTabBtn, tabBar.lastElementChild);
+
+      // Create new iframe
+      let newIframe = document.createElement('iframe');
+      newIframe.id = `iframe-${newIndex}`;
+      newIframe.src = "https://www.google.com";
+      document.getElementById('browser-container').appendChild(newIframe);
+
+      // Switch to the newly created tab
+      switchTab(newIndex);
+    }
+
+    function switchTab(index) {
+      // Deactivate old tab & iframe
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('iframe').forEach(el => el.classList.remove('active'));
+
+      // Activate clicked tab & corresponding iframe
+      activeTabIndex = index;
+      
+      // Find the tab button by index (skipping the "+ New Tab" button in query selection)
+      let tabButtons = document.querySelectorAll('#tab-bar .tab');
+      if (tabButtons[index]) tabButtons[index].classList.add('active');
+
+      let targetIframe = document.getElementById(`iframe-${index}`);
+      targetIframe.classList.add('active');
+
+      // Update the URL input to match the active tab's URL
+      document.getElementById('url-input').value = tabs[index].url;
+    }
+
+    function closeTab(index, event) {
+      event.stopPropagation(); // Prevents switching to the closed tab
+
+      // Don't close if it's the last remaining tab
+      if (tabs.length === 1) return; 
+
+      // Remove the tab and iframe from DOM
+      let tabButtons = document.querySelectorAll('#tab-bar .tab');
+      tabButtons[index].remove();
+      document.getElementById(`iframe-${index}`).remove();
+
+      // Remove from array and adjust indices
+      tabs.splice(index, 1);
+
+      // Refresh tab labels
+      let existingTabs = document.querySelectorAll('#tab-bar .tab');
+      for(let i = 0; i < existingTabs.length - 1; i++) {
+        existingTabs[i].onclick = () => switchTab(i);
+        existingTabs[i].innerHTML = `Tab ${i + 1} <button class="close-btn" onclick="closeTab(${i}, event)">×</button>`;
+        existingTabs[i].id = `tab-btn-${i}`;
+      }
+
+      // Rename all iframes to maintain mapping integrity
+      let remainingIframes = document.querySelectorAll('#browser-container iframe');
+      for(let i = 0; i < remainingIframes.length; i++) {
+        remainingIframes[i].id = `iframe-${i}`;
+      }
+
+      // Switch to the previous tab or the first tab
+      let newActiveIndex = index > 0 ? index - 1 : 0;
+      switchTab(newActiveIndex);
+    }
   </script>
 </body>
 </html>
