@@ -3,7 +3,7 @@
   "name": "My Custom Browser",
   "version": "1.0",
   "action": {
-    "default_popup": "browser.html"
+    "default_popup": "index.html"
   },
   "permissions": []
 }
